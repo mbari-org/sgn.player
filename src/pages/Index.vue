@@ -1,69 +1,91 @@
 <template>
   <q-page class>
-    <div>
-      <q-circular-progress
-        v-if="isLoading"
-        size="32px" indeterminate color="primary"
-      />
-    </div>
 
-    <div class="controls row flex q-pb-md q-pt-md shadow-10">
-      <q-btn
-        label="Spectrogram" no-caps color="primary" class="q-ma-sm"
-        @click="updateSpectrogram"
-        :disable="isLoading || updatingSpectrogram"
-        :loading="updatingSpectrogram"
-      />
+    <div class="controls row flex q-pt-sm shadow-2">
 
-      <div class="q-ml-xl">
+      <div class="q-ml-md items-center" style="width:70px">
         <q-btn
-          color="primary"
-          flat
-          round
-          icon="fast_rewind"
-          size="md"
+          v-if="showLoadButton && !isLoading"
+          color="primary" no-caps dense
+        >
+          Load File
+          <input
+            type="file"
+            class="q-uploader__input overflow-hidden absolute-full"
+            v-on:change="fileChosen"
+            ref="fileInput"
+            accept="audio/wav"
+          />
+        </q-btn>
+        <q-circular-progress
+          v-else-if="isLoading"
+          size="24px" indeterminate color="primary"
+        />
+      </div>
+
+      <div class="q-ml-lg">
+        <q-btn
+          color="primary" flat round icon="fast_rewind" size="md"
           @click="wavesurfer.skipBackward(1)"
         />
         <q-btn
           v-if="isPlaying"
-          color="primary"
-          round
-          icon="pause"
-          size="md"
+          color="primary" round icon="pause" size="sm"
           @click="wavesurfer.pause()"
         />
         <q-btn
           v-if="!isPlaying"
-          color="primary"
-          round
-          icon="play_arrow"
-          size="md"
+          color="primary" round icon="play_arrow" size="sm"
           @click="wavesurfer.play()"
         />
         <q-btn
-          color="primary"
-          flat
-          round
-          icon="fast_forward"
-          size="md"
+          color="primary" flat round icon="fast_forward" size="md"
           @click="wavesurfer.skipForward(1)"
         />
       </div>
 
+      <div class="q-ml-xl row items-center">
+        <div class="col q-mr-sm">Speed:</div>
+        <q-input
+          dense
+          v-model.number="playbackRate"
+          :min="1" :max="8"
+          style="width:50px" type="number" filled
+        />
+      </div>
+
 <!--zoom not properly handled yet
-      <div style="width:200px" class="q-ml-xl">
+-->
+      <div class="q-ml-xl row items-center">
+        <div class="q-mr-sm">Zoom:</div>
         <q-slider
-          :min="1" :max="1000"
+          dense
+          style="width:120px"
+          :min="1" :max="500"
           :value="zoom"
           @change="zoomChanged"
           label
         />
-        <q-tooltip>Zoom</q-tooltip>
       </div>
--->
+
+      <div
+        v-if="doSpectrogram"
+        class="q-ml-xl items-center"
+      >
+        <q-btn
+          v-if="!isLoading && !updatingSpectrogram"
+          dense label="Spectrogram" no-caps color="primary"
+          @click="updateSpectrogram"
+        />
+        <q-circular-progress
+          v-else-if="updatingSpectrogram"
+          size="23px" indeterminate color="primary"
+        />
+      </div>
+
     </div>
 
-    <div class="audio-container">
+    <div class="audio-container" ref="audio-container">
       <div class="row q-ma-md">
         <div class="col-12">
           <div class="col-12" id="wave-timeline"></div>
@@ -76,7 +98,6 @@
 </template>
 
 <script>
-  import { EventBus } from "../services/event-bus.js"
   import WaveSurfer from 'wavesurfer.js'
   import RegionsPlugin from 'wavesurfer.js/dist/plugin/wavesurfer.regions'
   import SpectrogramPlugin from 'wavesurfer.js/dist/plugin/wavesurfer.spectrogram'
@@ -86,9 +107,12 @@
     name: 'PageIndex',
 
     data: () => ({
+      showLoadButton: true, // trick to have the file input work not only the very 1st time is used.
       wavesurfer: null,
       isLoading: false,
+      playbackRate: 1,
       zoom: 1,
+      doSpectrogram: true,
       updatingSpectrogram: false,
     }),
 
@@ -99,12 +123,10 @@
     },
 
     async created() {
-      EventBus.$on("fileChosen", this.loadFile)
       document.addEventListener('keyup', this.onKeyUp)
     },
 
     async destroyed() {
-      EventBus.$off("fileChosen", this.loadFile)
       document.removeEventListener('keyup', this.onKeyUp)
     },
 
@@ -128,6 +150,9 @@
           container: "#waveform",
           // barWidth: 3,
           height: 256,
+          // autoCenter: false,
+          partialRender: true,
+          pixelRatio: 1,
           plugins: [
             regions,
             timeline,
@@ -200,6 +225,14 @@
         }
       },
 
+      fileChosen(file) {
+        this.showLoadButton = false
+        this.loadFile(file)
+        setTimeout(() => {
+          this.showLoadButton = true
+        }, 1000)
+      },
+
       loadFile(file) {
         if (file.target.files.length == 0) return
 
@@ -213,10 +246,20 @@
       zoomChanged(zoom) {
         this.zoom = zoom
         console.log('zoomChanged', this.zoom)
+        if (this.zoom === 1) {
+          this.doSpectrogram = true
+        }
+        else {
+          this.destroySpectrogramPlugin()
+          this.doSpectrogram = false
+        }
+        // zoom is pxPerSec
         this.wavesurfer.zoom(this.zoom)
       },
 
       updateSpectrogram() {
+        if (!this.doSpectrogram) return
+
         console.log('updateSpectrogram: updatingSpectrogram=', this.updatingSpectrogram)
         if (this.updatingSpectrogram) {
           return
@@ -230,6 +273,7 @@
           console.log('creating spectrogram')
           const spectrogram = this.createSpectrogramPlugin()
           this.wavesurfer.addPlugin(spectrogram)
+          console.log('initing spectrogram')
           this.wavesurfer.initPlugin('spectrogram')
           this.$nextTick(() => {
             this.updatingSpectrogram = false
@@ -245,12 +289,21 @@
             this.wavesurfer.playPause()
             break;
           case 'ArrowLeft':
-            this.wavesurfer.skipBackward(1)
+            // this.wavesurfer.skipBackward(1)
+            this.$refs['audio-container'].scrollLeft -= 20;
             break;
           case 'ArrowRight':
-            this.wavesurfer.skipBackward(-1)
+            // this.wavesurfer.skipBackward(-1)
+            this.$refs['audio-container'].scrollLeft += 20;
             break;
         }
+      },
+    },
+
+    watch: {
+      playbackRate() {
+        console.log('setPlaybackRate', this.playbackRate)
+        this.wavesurfer.setPlaybackRate(this.playbackRate)
       },
     },
   }
