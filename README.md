@@ -7,9 +7,16 @@ https://dev.to/johnnymakestuff/how-to-build-a-soundcloud-like-audio-player-app-w
 (here just intended as a regular webapp --not as a cordova-based mobile version),
 and then adding some WaveSurfer plugins.
 
-Status
+**Status**
 
 - timeline: ok
 - regions: basic functionality ok
 - spectrogram: basic functionality ok
 - zoom not properly handled yet
+
+### Running
+
+    yarn
+    quasar dev
+    
+![](screenshot.png)

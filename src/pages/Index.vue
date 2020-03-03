@@ -152,6 +152,9 @@
           height: 256,
           // autoCenter: false,
           partialRender: true,
+          normalize: true,
+          // backend: 'MediaElement',
+          // renderer: 'MultiCanvas',
           pixelRatio: 1,
           plugins: [
             regions,

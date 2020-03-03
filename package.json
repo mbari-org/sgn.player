@@ -2,22 +2,21 @@
   "name": "sgn.player",
   "version": "0.0.1",
   "description": "A Quasar Framework app",
-  "productName": "Quasar App",
+  "productName": "sgn.player",
   "cordovaId": "org.cordova.quasar.app",
   "author": "Carlos Rueda <carueda@mbari.org>",
-  "private": true,
   "scripts": {
     "lint": "eslint --ext .js,.vue src",
     "test": "echo \"No test specified\" && exit 0"
   },
   "dependencies": {
-    "@quasar/extras": "^1.0.0",
+    "@quasar/extras": "^1.5.2",
     "axios": "^0.18.1",
-    "quasar": "^1.0.0",
-    "wavesurfer.js": "^3.0.0"
+    "quasar": "^1.9.7",
+    "wavesurfer.js": "^3.3.1"
   },
   "devDependencies": {
-    "@quasar/app": "^1.0.0",
+    "@quasar/app": "^1.6.0",
     "@vue/eslint-config-standard": "^4.0.0",
     "babel-eslint": "^10.0.1",
     "eslint": "^5.10.0",
