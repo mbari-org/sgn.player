@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@quasar/extras": "^1.6.1",
-    "axios": "^0.18.1",
+    "axios": "^0.21.1",
     "quasar": "^1.9.12",
     "wavesurfer.js": "^3.3.1"
   },
