@@ -81,9 +81,9 @@
           dense
           style="width: 120px"
           :min="1"
-          :max="500"
+          :max="5000"
           :model-value="zoom"
-          @change="zoomChanged"
+          @update:modelValue="zoomChanged"
           label
         />
       </div>
@@ -111,7 +111,7 @@
         <div class="col-12">
           <div class="col-12" id="wave-timeline"></div>
           <div class="col-12" id="waveform"></div>
-          <div class="col-12" style="height: 128px" id="wave-spectrogram"></div>
+          <div class="col-12" id="wave-spectrogram"></div>
         </div>
       </div>
     </div>
@@ -130,6 +130,7 @@ export default {
   data: () => ({
     showLoadButton: true, // trick to have the file input work not only the very 1st time is used.
     wavesurfer: null,
+    regionsPlugin: null,
     isLoading: false,
     playbackRate: 1,
     zoom: 1,
@@ -160,33 +161,33 @@ export default {
 
   methods: {
     createWaveSurfer() {
-      const regions = RegionsPlugin.create({
-        regions: [],
-      });
-
-      const timeline = TimelinePlugin.create({
-        container: "#wave-timeline",
-      });
-
-      const options = {
+      this.wavesurfer = WaveSurfer.create({
         container: "#waveform",
         // barWidth: 3,
-        height: 256,
+        // height: 256,
         // autoCenter: false,
+
+        // "Use the PeakCache to improve rendering speed of large waveforms"
         partialRender: true,
+
+        responsive: true,
+
         normalize: true,
         // backend: 'MediaElement',
         // renderer: 'MultiCanvas',
         pixelRatio: 1,
-        plugins: [regions, timeline],
-      };
+        plugins: [
+          RegionsPlugin.create({
+            regions: [],
+          }),
+          TimelinePlugin.create({
+            container: "#wave-timeline",
+          }),
+        ],
 
-      // "Use the PeakCache to improve rendering speed of large waveforms"
-      partialRender: true,
-        // options.minPxPerSec = 100
-        (options.scrollParent = true);
-
-      this.wavesurfer = WaveSurfer.create(options);
+        // minPxPerSec: 100,
+        scrollParent: true,
+      });
 
       this.wavesurfer.load(
         "from_HBSe_20151207T070326__124.45328_126.52461.wav"
@@ -198,34 +199,44 @@ export default {
         color: regionColor,
       });
       this.wavesurfer.on("region-created", (region) => {
-        console.log(
+        console.debug(
           `region-created: id=${region.id} start=${region.start} end=${region.end}`
         );
       });
       this.wavesurfer.on("region-click", (region, e) => {
+        console.debug('region=', region)
         const loop = e.shiftKey;
         e.stopPropagation();
-        console.log(
+        console.debug(
           `region-click: id=${region.id} start=${region.start} end=${region.end} loop=${loop} isPlaying=${this.isPlaying}`
         );
-        if (!this.isPlaying) {
-          if (loop) region.playLoop();
+        if (this.isPlaying) {
+          region.setLoop(false);
+          this.wavesurfer.pause();
+        }
+        else {
+          if (loop) {
+            region.playLoop();
+            // the following still needed after pausing region
+            region.setLoop(true);
+          }
           else region.play();
         }
       });
 
       this.wavesurfer.on("error", (err) => {
-        console.error(err);
-        this.isLoading = false;
+        console.error(err)
+        this.isLoading = false
         this.$q.notify({ message: err });
       });
 
       this.wavesurfer.on("loading", () => {
-        this.isLoading = true;
+        this.isLoading = true
       });
 
       this.wavesurfer.on("ready", () => {
-        this.isLoading = false;
+        this.isLoading = false
+        this.wavesurfer.setHeight(120)
       });
     },
 
@@ -233,8 +244,8 @@ export default {
       return SpectrogramPlugin.create({
         container: "#wave-spectrogram",
         deferInit: true,
-        // fftSamples: 1024,
-        // noverlap: 512,
+        // fftSamples: 512,
+        // noverlap: 256,
         // windowFunc: 'hamming',
         labels: true,
         // pixelRatio: 2,
@@ -243,10 +254,10 @@ export default {
 
     destroySpectrogramPlugin() {
       const active = this.wavesurfer.getActivePlugins();
-      console.log("active=", active);
+      console.debug("active=", active);
       if (active.spectrogram) {
         this.wavesurfer.destroyPlugin("spectrogram");
-        console.log("spectrogram destroyed");
+        console.debug("spectrogram destroyed");
       }
     },
 
@@ -259,18 +270,19 @@ export default {
     },
 
     loadFile(file) {
-      if (file.target.files.length == 0) return;
+      if (file.target.files.length === 0) return;
 
+      this.wavesurfer.empty()
       this.destroySpectrogramPlugin();
 
       const blob = file.target.files[0];
-      console.log("Loading", blob);
+      console.debug("Loading", blob);
       this.wavesurfer.loadBlob(blob);
     },
 
     zoomChanged(zoom) {
       this.zoom = zoom;
-      console.log("zoomChanged", this.zoom);
+      console.debug("zoomChanged", this.zoom);
       if (this.zoom === 1) {
         this.doSpectrogram = true;
       } else {
@@ -278,13 +290,13 @@ export default {
         this.doSpectrogram = false;
       }
       // zoom is pxPerSec
-      this.wavesurfer.zoom(this.zoom);
+      this.wavesurfer.zoom(Number(this.zoom));
     },
 
     updateSpectrogram() {
       if (!this.doSpectrogram) return;
 
-      console.log(
+      console.debug(
         "updateSpectrogram: updatingSpectrogram=",
         this.updatingSpectrogram
       );
@@ -297,14 +309,14 @@ export default {
       this.destroySpectrogramPlugin();
 
       setTimeout(() => {
-        console.log("creating spectrogram");
+        console.debug("creating spectrogram");
         const spectrogram = this.createSpectrogramPlugin();
         this.wavesurfer.addPlugin(spectrogram);
-        console.log("initing spectrogram");
+        console.debug("initing spectrogram");
         this.wavesurfer.initPlugin("spectrogram");
         this.$nextTick(() => {
           this.updatingSpectrogram = false;
-          console.log("spectrogram inited");
+          console.debug("spectrogram inited");
         });
       }, 200);
     },
@@ -329,7 +341,7 @@ export default {
 
   watch: {
     playbackRate() {
-      console.log("setPlaybackRate", this.playbackRate);
+      console.debug("setPlaybackRate", this.playbackRate);
       this.wavesurfer.setPlaybackRate(this.playbackRate);
     },
   },
