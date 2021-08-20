@@ -1,3 +1,7 @@
+2021-08
+
+- upgrade project to quasar2 (2.0.3)
+
 2020-04
 
 - quasar upgrade (now 1.6.1) as a general way to also address
