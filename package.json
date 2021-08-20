@@ -13,7 +13,7 @@
     "axios": "^0.21.1",
     "core-js": "^3.6.5",
     "quasar": "^2.0.0",
-    "wavesurfer.js": "4.6.0"
+    "wavesurfer.js": "5.2.0"
   },
   "devDependencies": {
     "@babel/eslint-parser": "^7.0.0",

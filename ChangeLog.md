@@ -1,6 +1,6 @@
 2021-08
 
-- upgrade wavesurfer.js to 4.6.0
+- upgrade wavesurfer.js to 5.2.0
 - upgrade project to quasar2 (2.0.3)
 
 2020-04
