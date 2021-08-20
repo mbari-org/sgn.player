@@ -1,6 +1,8 @@
 2021-08
 
-- wavesurfer not as straightforward 
+- recreate wavesurfer upon loading file.
+  This seems to fix some misbehavior when trying to reuse the
+  same instance, despite associated cleanup prior to load file
 - upgrade wavesurfer.js to 5.2.0
 - upgrade project to quasar2 (2.0.3)
 

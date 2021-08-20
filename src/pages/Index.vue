@@ -66,7 +66,7 @@
           dense
           v-model.number="playbackRate"
           :min="1"
-          :max="8"
+          :max="12"
           style="width: 50px"
           type="number"
           filled
@@ -201,7 +201,7 @@ function createSpectrogramPlugin() {
   })
 }
 
-function  destroySpectrogramPlugin(wavesurfer) {
+function destroySpectrogramPlugin(wavesurfer) {
   const active = wavesurfer.getActivePlugins()
   console.debug("active plugins=", active)
   if (active.spectrogram) {
@@ -239,19 +239,37 @@ export default {
   },
 
   mounted() {
-    if (!this.wavesurfer) {
-      this.createWaveSurfer()
-    }
+    this.createWaveSurferWith({
+      url: "from_HBSe_20151207T070326__124.45328_126.52461.wav"
+      // url: "https://ia902606.us.archive.org/35/items/shortpoetry_047_librivox/song_cjrg_teasdale_64kb.mp3"
+    })
   },
 
   methods: {
-    createWaveSurfer() {
+    destroyWaveSurfer() {
+      if (this.wavesurfer) {
+        // maybe the destroy down below takes care of these:
+        // this.wavesurfer.empty()
+        // destroySpectrogramPlugin(this.wavesurfer)
+
+        this.wavesurfer.destroy()
+        this.wavesurfer = null
+      }
+    },
+
+    createWaveSurferWith({ url, blob }) {
+      this.destroyWaveSurfer()
+
       this.wavesurfer = createWaveSurfer()
 
-      this.wavesurfer.load(
-        "from_HBSe_20151207T070326__124.45328_126.52461.wav"
-      )
-      //this.wavesurfer.load("https://ia902606.us.archive.org/35/items/shortpoetry_047_librivox/song_cjrg_teasdale_64kb.mp3")
+      if (url) {
+        console.debug("loading url=", url)
+        this.wavesurfer.load(url)
+      }
+      else {
+        console.debug("loading blob=", blob)
+        this.wavesurfer.loadBlob(blob)
+      }
 
       this.wavesurfer.on("error", (err) => {
         console.error("on error", err)
@@ -271,6 +289,8 @@ export default {
         this.isLoading = false
         this.showLoadButton = true
         this.wavesurfer.setHeight(120)
+        this.wavesurfer.setPlaybackRate(this.playbackRate)
+        this.wavesurfer.zoom(Number(this.zoom))
       })
     },
 
@@ -280,14 +300,10 @@ export default {
     },
 
     loadFile(file) {
-      if (file.target.files.length === 0) return
-
-      this.wavesurfer.empty()
-      destroySpectrogramPlugin(this.wavesurfer)
-
-      const blob = file.target.files[0]
-      console.debug("Loading", blob)
-      this.wavesurfer.loadBlob(blob)
+      if (file.target.files.length) {
+        const blob = file.target.files[0]
+        this.createWaveSurferWith({ blob })
+      }
     },
 
     zoomChanged(zoom) {
