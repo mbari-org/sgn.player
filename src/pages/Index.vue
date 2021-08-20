@@ -119,10 +119,10 @@
 </template>
 
 <script>
-import WaveSurfer from "wavesurfer.js";
-import RegionsPlugin from "wavesurfer.js/dist/plugin/wavesurfer.regions";
-import SpectrogramPlugin from "wavesurfer.js/dist/plugin/wavesurfer.spectrogram";
-import TimelinePlugin from "wavesurfer.js/dist/plugin/wavesurfer.timeline";
+import WaveSurfer from "wavesurfer.js"
+import RegionsPlugin from "wavesurfer.js/dist/plugin/wavesurfer.regions"
+import SpectrogramPlugin from "wavesurfer.js/dist/plugin/wavesurfer.spectrogram"
+import TimelinePlugin from "wavesurfer.js/dist/plugin/wavesurfer.timeline"
 
 function createWaveSurfer() {
   const wavesurfer = WaveSurfer.create({
@@ -153,7 +153,7 @@ function createWaveSurfer() {
     scrollParent: true,
   })
 
-  const regionColor = "hsla(400, 100%, 30%, 0.2)";
+  const regionColor = "hsla(400, 100%, 30%, 0.2)"
   wavesurfer.enableDragSelection({
     color: regionColor,
   })
@@ -166,27 +166,48 @@ function createWaveSurfer() {
 
   wavesurfer.on("region-click", (region, e) => {
     console.debug('region=', region)
-    const loop = e.shiftKey;
-    e.stopPropagation();
+    const loop = e.shiftKey
+    e.stopPropagation()
     const isPlaying = wavesurfer.isPlaying()
     console.debug(
         `region-click: id=${region.id} start=${region.start} end=${region.end} loop=${loop} isPlaying=${isPlaying}`
-    );
+    )
     if (wavesurfer.isPlaying()) {
-      region.setLoop(false);
-      wavesurfer.pause();
+      region.setLoop(false)
+      wavesurfer.pause()
     }
     else {
       if (loop) {
-        region.playLoop();
+        region.playLoop()
         // the following still needed after pausing region
-        region.setLoop(true);
+        region.setLoop(true)
       }
-      else region.play();
+      else region.play()
     }
   })
 
   return wavesurfer
+}
+
+function createSpectrogramPlugin() {
+  return SpectrogramPlugin.create({
+    container: "#wave-spectrogram",
+    deferInit: true,
+    // fftSamples: 512,
+    // noverlap: 256,
+    // windowFunc: 'hamming',
+    labels: true,
+    // pixelRatio: 2,
+  })
+}
+
+function  destroySpectrogramPlugin(wavesurfer) {
+  const active = wavesurfer.getActivePlugins()
+  console.debug("active plugins=", active)
+  if (active.spectrogram) {
+    wavesurfer.destroyPlugin("spectrogram")
+    console.debug("spectrogram destroyed")
+  }
 }
 
 export default {
@@ -205,21 +226,21 @@ export default {
 
   computed: {
     isPlaying() {
-      return this.wavesurfer && this.wavesurfer.isPlaying();
+      return this.wavesurfer && this.wavesurfer.isPlaying()
     },
   },
 
   created() {
-    document.addEventListener("keyup", this.onKeyUp);
+    document.addEventListener("keyup", this.onKeyUp)
   },
 
   destroyed() {
-    document.removeEventListener("keyup", this.onKeyUp);
+    document.removeEventListener("keyup", this.onKeyUp)
   },
 
   mounted() {
     if (!this.wavesurfer) {
-      this.createWaveSurfer();
+      this.createWaveSurfer()
     }
   },
 
@@ -229,142 +250,119 @@ export default {
 
       this.wavesurfer.load(
         "from_HBSe_20151207T070326__124.45328_126.52461.wav"
-      );
+      )
       //this.wavesurfer.load("https://ia902606.us.archive.org/35/items/shortpoetry_047_librivox/song_cjrg_teasdale_64kb.mp3")
 
       this.wavesurfer.on("error", (err) => {
         console.error("on error", err)
         this.isLoading = false
-        this.$q.notify({ message: err });
-      });
+        this.showLoadButton = true
+        this.$q.notify({ message: err })
+      })
 
       this.wavesurfer.on("loading", () => {
         console.debug("on loading")
         this.isLoading = true
-      });
+        this.showLoadButton = false
+      })
 
       this.wavesurfer.on("ready", () => {
         console.debug("on ready")
         this.isLoading = false
+        this.showLoadButton = true
         this.wavesurfer.setHeight(120)
-        setTimeout(() => {
-          this.zoomChanged(20)
-        }, 2000)
-      });
-    },
-
-    createSpectrogramPlugin() {
-      return SpectrogramPlugin.create({
-        container: "#wave-spectrogram",
-        deferInit: true,
-        // fftSamples: 512,
-        // noverlap: 256,
-        // windowFunc: 'hamming',
-        labels: true,
-        // pixelRatio: 2,
-      });
-    },
-
-    destroySpectrogramPlugin() {
-      const active = this.wavesurfer.getActivePlugins();
-      console.debug("active plugins=", active);
-      if (active.spectrogram) {
-        this.wavesurfer.destroyPlugin("spectrogram");
-        console.debug("spectrogram destroyed");
-      }
+      })
     },
 
     fileChosen(file) {
-      this.showLoadButton = false;
-      this.loadFile(file);
-      setTimeout(() => {
-        this.showLoadButton = true;
-      }, 1000);
+      this.showLoadButton = false
+      this.loadFile(file)
     },
 
     loadFile(file) {
-      if (file.target.files.length === 0) return;
+      if (file.target.files.length === 0) return
 
       this.wavesurfer.empty()
-      this.destroySpectrogramPlugin();
+      destroySpectrogramPlugin(this.wavesurfer)
 
-      const blob = file.target.files[0];
-      console.debug("Loading", blob);
-      this.wavesurfer.loadBlob(blob);
+      const blob = file.target.files[0]
+      console.debug("Loading", blob)
+      this.wavesurfer.loadBlob(blob)
     },
 
     zoomChanged(zoom) {
-      this.zoom = zoom;
-      console.debug("zoomChanged", this.zoom);
+      this.zoom = zoom
+      console.debug("zoomChanged", this.zoom)
       if (this.zoom === 1) {
-        this.doSpectrogram = true;
-      } else {
-        this.destroySpectrogramPlugin();
-        this.doSpectrogram = false;
+        this.doSpectrogram = true
+      }
+      else {
+        destroySpectrogramPlugin(this.wavesurfer)
+        this.doSpectrogram = false
       }
       // zoom is pxPerSec
       this.wavesurfer.zoom(Number(this.zoom))
     },
 
     updateSpectrogram() {
-      if (!this.doSpectrogram) return;
+      if (!this.doSpectrogram) return
 
       console.debug(
         "updateSpectrogram: updatingSpectrogram=",
         this.updatingSpectrogram
-      );
+      )
       if (this.updatingSpectrogram) {
-        return;
+        return
       }
 
-      this.destroySpectrogramPlugin();
+      destroySpectrogramPlugin(this.wavesurfer)
 
-      this.updatingSpectrogram = true;
+      this.updatingSpectrogram = true
 
       setTimeout(() => {
-        console.debug("creating spectrogram");
-        const spectrogram = this.createSpectrogramPlugin();
-        this.wavesurfer.addPlugin(spectrogram);
-        console.debug("initing spectrogram");
+        console.debug("creating spectrogram")
+        const spectrogram = createSpectrogramPlugin()
+        this.wavesurfer.addPlugin(spectrogram)
+        console.debug("initing spectrogram")
         try {
-          this.wavesurfer.initPlugin("spectrogram");
+          this.wavesurfer.initPlugin("spectrogram")
         }
         catch (e) {
-          this.updatingSpectrogram = false;
-          console.error("error initing spectrogram", e);
+          this.updatingSpectrogram = false
+          console.error("error initing spectrogram", e)
         }
         this.$nextTick(() => {
           if (this.updatingSpectrogram) {
-            this.updatingSpectrogram = false;
-            console.debug("spectrogram inited");
+            this.updatingSpectrogram = false
+            console.debug("spectrogram inited")
           }
-        });
-      }, 200);
+        })
+      }, 200)
     },
 
     onKeyUp(event) {
       // console.debug('onKeyUp', event)
       switch (event.code) {
         case "Space":
-          this.wavesurfer.playPause();
-          break;
+          this.wavesurfer.playPause()
+          break
         case "ArrowLeft":
           // this.wavesurfer.skipBackward(1)
-          this.$refs["audio-container"].scrollLeft -= 20;
-          break;
+          this.$refs["audio-container"].scrollLeft -= 20
+          break
         case "ArrowRight":
           // this.wavesurfer.skipBackward(-1)
-          this.$refs["audio-container"].scrollLeft += 20;
-          break;
+          this.$refs["audio-container"].scrollLeft += 20
+          break
       }
     },
   },
 
   watch: {
     playbackRate() {
-      console.debug("setPlaybackRate", this.playbackRate);
-      this.wavesurfer.setPlaybackRate(this.playbackRate);
+      console.debug("setPlaybackRate", this.playbackRate)
+      this.wavesurfer.setPlaybackRate(this.playbackRate)
     },
   },
-};
+}
 </script>
