@@ -124,6 +124,71 @@ import RegionsPlugin from "wavesurfer.js/dist/plugin/wavesurfer.regions";
 import SpectrogramPlugin from "wavesurfer.js/dist/plugin/wavesurfer.spectrogram";
 import TimelinePlugin from "wavesurfer.js/dist/plugin/wavesurfer.timeline";
 
+function createWaveSurfer() {
+  const wavesurfer = WaveSurfer.create({
+    container: "#waveform",
+    // barWidth: 3,
+    // height: 256,
+    // autoCenter: false,
+
+    // "Use the PeakCache to improve rendering speed of large waveforms"
+    partialRender: true,
+
+    responsive: true,
+
+    normalize: true,
+    backend: 'WebAudio',
+    // renderer: 'MultiCanvas',
+    pixelRatio: 1,
+    plugins: [
+      RegionsPlugin.create({
+        regions: [],
+      }),
+      TimelinePlugin.create({
+        container: "#wave-timeline",
+      }),
+    ],
+
+    // minPxPerSec: 100,
+    scrollParent: true,
+  })
+
+  const regionColor = "hsla(400, 100%, 30%, 0.2)";
+  wavesurfer.enableDragSelection({
+    color: regionColor,
+  })
+
+  wavesurfer.on("region-created", region => {
+    console.debug(
+        `region-created: id=${region.id} start=${region.start} end=${region.end}`
+    )
+  })
+
+  wavesurfer.on("region-click", (region, e) => {
+    console.debug('region=', region)
+    const loop = e.shiftKey;
+    e.stopPropagation();
+    const isPlaying = wavesurfer.isPlaying()
+    console.debug(
+        `region-click: id=${region.id} start=${region.start} end=${region.end} loop=${loop} isPlaying=${isPlaying}`
+    );
+    if (wavesurfer.isPlaying()) {
+      region.setLoop(false);
+      wavesurfer.pause();
+    }
+    else {
+      if (loop) {
+        region.playLoop();
+        // the following still needed after pausing region
+        region.setLoop(true);
+      }
+      else region.play();
+    }
+  })
+
+  return wavesurfer
+}
+
 export default {
   name: "PageIndex",
 
@@ -145,7 +210,6 @@ export default {
   },
 
   created() {
-    console.debug("CREATED");
     document.addEventListener("keyup", this.onKeyUp);
   },
 
@@ -153,7 +217,7 @@ export default {
     document.removeEventListener("keyup", this.onKeyUp);
   },
 
-  async mounted() {
+  mounted() {
     if (!this.wavesurfer) {
       this.createWaveSurfer();
     }
@@ -161,82 +225,31 @@ export default {
 
   methods: {
     createWaveSurfer() {
-      this.wavesurfer = WaveSurfer.create({
-        container: "#waveform",
-        // barWidth: 3,
-        // height: 256,
-        // autoCenter: false,
-
-        // "Use the PeakCache to improve rendering speed of large waveforms"
-        partialRender: true,
-
-        responsive: true,
-
-        normalize: true,
-        // backend: 'MediaElement',
-        // renderer: 'MultiCanvas',
-        pixelRatio: 1,
-        plugins: [
-          RegionsPlugin.create({
-            regions: [],
-          }),
-          TimelinePlugin.create({
-            container: "#wave-timeline",
-          }),
-        ],
-
-        // minPxPerSec: 100,
-        scrollParent: true,
-      });
+      this.wavesurfer = createWaveSurfer()
 
       this.wavesurfer.load(
         "from_HBSe_20151207T070326__124.45328_126.52461.wav"
       );
       //this.wavesurfer.load("https://ia902606.us.archive.org/35/items/shortpoetry_047_librivox/song_cjrg_teasdale_64kb.mp3")
 
-      const regionColor = "hsla(400, 100%, 30%, 0.2)";
-      this.wavesurfer.enableDragSelection({
-        color: regionColor,
-      });
-      this.wavesurfer.on("region-created", (region) => {
-        console.debug(
-          `region-created: id=${region.id} start=${region.start} end=${region.end}`
-        );
-      });
-      this.wavesurfer.on("region-click", (region, e) => {
-        console.debug('region=', region)
-        const loop = e.shiftKey;
-        e.stopPropagation();
-        console.debug(
-          `region-click: id=${region.id} start=${region.start} end=${region.end} loop=${loop} isPlaying=${this.isPlaying}`
-        );
-        if (this.isPlaying) {
-          region.setLoop(false);
-          this.wavesurfer.pause();
-        }
-        else {
-          if (loop) {
-            region.playLoop();
-            // the following still needed after pausing region
-            region.setLoop(true);
-          }
-          else region.play();
-        }
-      });
-
       this.wavesurfer.on("error", (err) => {
-        console.error(err)
+        console.error("on error", err)
         this.isLoading = false
         this.$q.notify({ message: err });
       });
 
       this.wavesurfer.on("loading", () => {
+        console.debug("on loading")
         this.isLoading = true
       });
 
       this.wavesurfer.on("ready", () => {
+        console.debug("on ready")
         this.isLoading = false
         this.wavesurfer.setHeight(120)
+        setTimeout(() => {
+          this.zoomChanged(20)
+        }, 2000)
       });
     },
 
@@ -254,7 +267,7 @@ export default {
 
     destroySpectrogramPlugin() {
       const active = this.wavesurfer.getActivePlugins();
-      console.debug("active=", active);
+      console.debug("active plugins=", active);
       if (active.spectrogram) {
         this.wavesurfer.destroyPlugin("spectrogram");
         console.debug("spectrogram destroyed");
@@ -290,7 +303,7 @@ export default {
         this.doSpectrogram = false;
       }
       // zoom is pxPerSec
-      this.wavesurfer.zoom(Number(this.zoom));
+      this.wavesurfer.zoom(Number(this.zoom))
     },
 
     updateSpectrogram() {
@@ -304,19 +317,27 @@ export default {
         return;
       }
 
-      this.updatingSpectrogram = true;
-
       this.destroySpectrogramPlugin();
+
+      this.updatingSpectrogram = true;
 
       setTimeout(() => {
         console.debug("creating spectrogram");
         const spectrogram = this.createSpectrogramPlugin();
         this.wavesurfer.addPlugin(spectrogram);
         console.debug("initing spectrogram");
-        this.wavesurfer.initPlugin("spectrogram");
-        this.$nextTick(() => {
+        try {
+          this.wavesurfer.initPlugin("spectrogram");
+        }
+        catch (e) {
           this.updatingSpectrogram = false;
-          console.debug("spectrogram inited");
+          console.error("error initing spectrogram", e);
+        }
+        this.$nextTick(() => {
+          if (this.updatingSpectrogram) {
+            this.updatingSpectrogram = false;
+            console.debug("spectrogram inited");
+          }
         });
       }, 200);
     },

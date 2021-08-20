@@ -1,5 +1,6 @@
 2021-08
 
+- wavesurfer not as straightforward 
 - upgrade wavesurfer.js to 5.2.0
 - upgrade project to quasar2 (2.0.3)
 
