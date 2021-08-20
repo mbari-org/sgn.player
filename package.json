@@ -1,9 +1,14 @@
 {
   "name": "sgn.player",
   "version": "0.0.2",
-  "description": "A Quasar Framework app",
+  "description": "A basic audio visualizer/player based on WaveSurfer and Quasar",
   "productName": "sgn.player",
   "author": "Carlos Rueda <carueda@mbari.org>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mbari-org/sgn.player"
+  },
   "scripts": {
     "lint": "eslint --ext .js,.vue src",
     "test": "echo \"No test specified\" && exit 0"
