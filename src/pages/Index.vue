@@ -1,7 +1,7 @@
 <template>
-  <q-page class>
-    <div class="controls row flex q-pt-sm shadow-2">
-      <div class="q-ml-md items-center" style="width: 70px">
+  <q-page>
+    <div class="controls row flex q-pl-md q-py-sm q-gutter-lg shadow-2">
+      <div class="row items-center">
         <q-btn
           v-if="showLoadButton && !isLoading"
           color="primary"
@@ -12,20 +12,15 @@
           <input
             type="file"
             class="q-uploader__input overflow-hidden absolute-full"
+            :loading="isLoading"
             v-on:change="fileChosen"
             ref="fileInput"
             accept="audio/wav"
           />
         </q-btn>
-        <q-circular-progress
-          v-else-if="isLoading"
-          size="24px"
-          indeterminate
-          color="primary"
-        />
       </div>
 
-      <div class="q-ml-lg">
+      <div class="row items-center bg-blue-1">
         <q-btn
           color="primary"
           flat
@@ -34,22 +29,24 @@
           size="md"
           @click="wavesurfer.skipBackward(1)"
         />
-        <q-btn
-          v-if="isPlaying"
-          color="primary"
-          round
-          icon="pause"
-          size="sm"
-          @click="wavesurfer.pause()"
-        />
-        <q-btn
-          v-if="!isPlaying"
-          color="primary"
-          round
-          icon="play_arrow"
-          size="sm"
-          @click="wavesurfer.play()"
-        />
+        <div>
+          <q-btn
+            v-if="isPlaying"
+            color="primary"
+            round
+            icon="pause"
+            size="sm"
+            @click="wavesurfer.pause()"
+          />
+          <q-btn
+            v-if="!isPlaying"
+            color="primary"
+            round
+            icon="play_arrow"
+            size="sm"
+            @click="wavesurfer.play()"
+          />
+        </div>
         <q-btn
           color="primary"
           flat
@@ -60,35 +57,32 @@
         />
       </div>
 
-      <div class="q-ml-xl row items-center">
+      <div class="row items-center">
         <div class="col q-mr-sm">Speed:</div>
         <q-input
           dense
           v-model.number="playbackRate"
           :min="1"
           :max="12"
-          style="width: 50px"
+          style="width:4em"
           type="number"
           filled
         />
       </div>
 
-      <!--zoom not properly handled yet
--->
-      <div class="q-ml-xl row items-center">
-        <div class="q-mr-sm">Zoom:</div>
+      <div class="row items-center q-gutter-x-md">
+        <div>Zoom:</div>
+        <div>{{ zoom }}</div>
         <q-slider
           dense
           style="width: 120px"
           :min="1"
           :max="5000"
-          :model-value="zoom"
-          @update:modelValue="zoomChanged"
-          label
+          v-model.number="zoom"
         />
       </div>
 
-      <div v-if="doSpectrogram" class="q-ml-xl items-center">
+      <div v-if="doSpectrogram" class="items-center">
         <q-btn
           v-if="!isLoading && !updatingSpectrogram"
           dense
@@ -107,12 +101,10 @@
     </div>
 
     <div class="audio-container" ref="audio-container">
-      <div class="row q-ma-md">
-        <div class="col-12">
-          <div class="col-12" id="wave-timeline"></div>
-          <div class="col-12" id="waveform"></div>
-          <div class="col-12" id="wave-spectrogram"></div>
-        </div>
+      <div class="col-12 q-ma-md">
+        <div class="col-12" id="wave-timeline"></div>
+        <div class="col-12" id="waveform"></div>
+        <div class="col-12" id="wave-spectrogram"></div>
       </div>
     </div>
   </q-page>
@@ -123,6 +115,8 @@ import WaveSurfer from "wavesurfer.js"
 import RegionsPlugin from "wavesurfer.js/dist/plugin/wavesurfer.regions"
 import SpectrogramPlugin from "wavesurfer.js/dist/plugin/wavesurfer.spectrogram"
 import TimelinePlugin from "wavesurfer.js/dist/plugin/wavesurfer.timeline"
+
+import { debounce } from 'quasar'
 
 function createWaveSurfer() {
   const wavesurfer = WaveSurfer.create({
@@ -231,6 +225,7 @@ export default {
   },
 
   created() {
+    this.zoomChanged = debounce(this.zoomChanged, 500)
     document.addEventListener("keyup", this.onKeyUp)
   },
 
@@ -375,9 +370,12 @@ export default {
   },
 
   watch: {
-    playbackRate() {
-      console.debug("setPlaybackRate", this.playbackRate)
-      this.wavesurfer.setPlaybackRate(this.playbackRate)
+    playbackRate(playbackRate) {
+      this.wavesurfer.setPlaybackRate(playbackRate)
+    },
+
+    zoom(zoom) {
+      this.zoomChanged(zoom)
     },
   },
 }
