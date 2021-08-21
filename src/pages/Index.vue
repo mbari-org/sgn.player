@@ -82,21 +82,62 @@
         />
       </div>
 
-      <div v-if="doSpectrogram" class="items-center">
-        <q-btn
-          v-if="!isLoading && !updatingSpectrogram"
+      <div
+          v-if="zoom === 1"
+          class="q-px-xs row items-center q-gutter-x-sm shadow-2"
+      >
+        <div>
+          <q-btn
+            v-if="!isLoading && !spectrogram.updating"
+            dense
+            label="Spectrogram"
+            no-caps
+            color="primary"
+            @click="updateSpectrogram"
+          />
+          <q-circular-progress
+            v-else-if="spectrogram.updating"
+            size="23px"
+            indeterminate
+            color="primary"
+          />
+        </div>
+        <q-checkbox
+          label="Labels"
+          v-model="spectrogram.opts.labels"
           dense
-          label="Spectrogram"
-          no-caps
-          color="primary"
-          @click="updateSpectrogram"
         />
-        <q-circular-progress
-          v-else-if="updatingSpectrogram"
-          size="23px"
-          indeterminate
-          color="primary"
-        />
+        <div class="row items-center q-gutter-x-sm">
+          <div class="row items-center q-gutter-x-xs bg-blue-1">
+            <div>FFT:</div>
+            <q-input
+                dense
+                prefix="2^"
+                v-model.number="spectrogram.opts.fftSamplesExp"
+                @change="spectrogramFftParamsAdjusted"
+                :min="9"
+                :max="12"
+                style="width:4em"
+                type="number"
+            />
+            <div>= {{ spectrogram.opts.fftSamples }}</div>
+          </div>
+          <div class="row items-center q-gutter-x-xs bg-blue-1">
+            <div>Overlap:</div>
+            <q-input
+                dense
+                v-model.number="spectrogram.opts.noverlapPercent"
+                @change="spectrogramFftParamsAdjusted"
+                :min="25"
+                :max="80"
+                suffix="%"
+                style="width:4em"
+                type="number"
+            >
+            </q-input>
+            <div>= {{ spectrogram.opts.noverlap }}</div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -183,16 +224,13 @@ function createWaveSurfer() {
   return wavesurfer
 }
 
-function createSpectrogramPlugin() {
-  return SpectrogramPlugin.create({
+function createSpectrogramPlugin(moreOpts = {}) {
+  const baseOpts = {
     container: "#wave-spectrogram",
     deferInit: true,
-    // fftSamples: 512,
-    // noverlap: 256,
-    // windowFunc: 'hamming',
-    labels: true,
-    // pixelRatio: 2,
-  })
+  }
+  const opts = {...baseOpts, ...moreOpts}
+  return SpectrogramPlugin.create(opts)
 }
 
 function destroySpectrogramPlugin(wavesurfer) {
@@ -214,8 +252,18 @@ export default {
     isLoading: false,
     playbackRate: 1,
     zoom: 1,
-    doSpectrogram: true,
-    updatingSpectrogram: false,
+    spectrogram: {
+      opts: {
+        labels: true,
+        fftSamplesExp: 10,
+        fftSamples: 1024, // === 2 ^ fftSamplesExp
+        noverlap: 512,
+        noverlapPercent: 50,
+        windowFunc: 'hann',
+        pixelRatio: 1,
+      },
+      updating: false,
+    },
   }),
 
   computed: {
@@ -304,47 +352,55 @@ export default {
     zoomChanged(zoom) {
       this.zoom = zoom
       console.debug("zoomChanged", this.zoom)
-      if (this.zoom === 1) {
-        this.doSpectrogram = true
-      }
-      else {
+      if (this.zoom > 1) {
         destroySpectrogramPlugin(this.wavesurfer)
-        this.doSpectrogram = false
       }
       // zoom is pxPerSec
       this.wavesurfer.zoom(Number(this.zoom))
     },
 
+    spectrogramFftParamsAdjusted() {
+      const exp = this.spectrogram.opts.fftSamplesExp
+      const fftSamples = 2 ** exp
+      this.spectrogram.opts.fftSamples = fftSamples
+
+      const perc = this.spectrogram.opts.noverlapPercent
+      this.spectrogram.opts.noverlap = Math.round(fftSamples * perc / 100)
+    },
+
     updateSpectrogram() {
-      if (!this.doSpectrogram) return
+      if (this.zoom > 1) {
+        return
+      }
 
       console.debug(
-        "updateSpectrogram: updatingSpectrogram=",
-        this.updatingSpectrogram
+        "updateSpectrogram: spectrogram.updating=",
+        this.spectrogram.updating
       )
-      if (this.updatingSpectrogram) {
+      if (this.spectrogram.updating) {
         return
       }
 
       destroySpectrogramPlugin(this.wavesurfer)
 
-      this.updatingSpectrogram = true
+      this.spectrogram.updating = true
 
       setTimeout(() => {
         console.debug("creating spectrogram")
-        const spectrogram = createSpectrogramPlugin()
+        const spectrogram = createSpectrogramPlugin(this.spectrogram.opts)
+
         this.wavesurfer.addPlugin(spectrogram)
         console.debug("initing spectrogram")
         try {
           this.wavesurfer.initPlugin("spectrogram")
         }
         catch (e) {
-          this.updatingSpectrogram = false
+          this.spectrogram.updating = false
           console.error("error initing spectrogram", e)
         }
         this.$nextTick(() => {
-          if (this.updatingSpectrogram) {
-            this.updatingSpectrogram = false
+          if (this.spectrogram.updating) {
+            this.spectrogram.updating = false
             console.debug("spectrogram inited")
           }
         })

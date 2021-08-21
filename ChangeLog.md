@@ -1,5 +1,6 @@
 2021-08
 
+- allow some spectrogram params
 - recreate wavesurfer upon loading file.
   This seems to fix some misbehavior when trying to reuse the
   same instance, despite associated cleanup prior to load file
