@@ -84,54 +84,53 @@
 
       <div
           v-if="zoom === 1"
-          class="q-px-xs row items-center q-gutter-x-sm shadow-2"
+          class="q-px-xs row items-center q-gutter-x-sm shadow-5"
       >
         <div>
           <q-btn
-            v-if="!isLoading && !spectrogram.updating"
+            :disable="isLoading || spectrogram.updating"
             dense
             label="Spectrogram"
             no-caps
             color="primary"
             @click="updateSpectrogram"
-          />
-          <q-circular-progress
-            v-else-if="spectrogram.updating"
-            size="23px"
-            indeterminate
-            color="primary"
+            :loading="spectrogram.updating"
           />
         </div>
-        <q-checkbox
-          label="Labels"
-          v-model="spectrogram.opts.labels"
-          dense
-        />
+        <div class="bg-blue-1 q-pa-xs rounded-borders">
+          <q-checkbox
+            label="Labels"
+            v-model="spectrogram.opts.labels"
+            dense
+          />
+        </div>
         <div class="row items-center q-gutter-x-sm">
-          <div class="row items-center q-gutter-x-xs bg-blue-1">
+          <div class="row items-center q-gutter-x-xs bg-blue-1 q-pr-xs rounded-borders">
             <div>FFT:</div>
             <q-input
                 dense
+                outlined
                 prefix="2^"
                 v-model.number="spectrogram.opts.fftSamplesExp"
                 @change="spectrogramFftParamsAdjusted"
                 :min="9"
                 :max="12"
-                style="width:4em"
+                style="width:6em"
                 type="number"
             />
             <div>= {{ spectrogram.opts.fftSamples }}</div>
           </div>
-          <div class="row items-center q-gutter-x-xs bg-blue-1">
+          <div class="row items-center q-gutter-x-xs bg-blue-1 q-pr-xs rounded-borders">
             <div>Overlap:</div>
             <q-input
                 dense
+                outlined
                 v-model.number="spectrogram.opts.noverlapPercent"
                 @change="spectrogramFftParamsAdjusted"
                 :min="25"
                 :max="80"
                 suffix="%"
-                style="width:4em"
+                style="width:6em"
                 type="number"
             >
             </q-input>
@@ -411,14 +410,12 @@ export default {
       // console.debug('onKeyUp', event)
       switch (event.code) {
         case "Space":
-          this.wavesurfer.playPause()
+          this.wavesurfer && this.wavesurfer.playPause()
           break
         case "ArrowLeft":
-          // this.wavesurfer.skipBackward(1)
           this.$refs["audio-container"].scrollLeft -= 20
           break
         case "ArrowRight":
-          // this.wavesurfer.skipBackward(-1)
           this.$refs["audio-container"].scrollLeft += 20
           break
       }
