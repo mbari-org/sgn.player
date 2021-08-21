@@ -77,13 +77,12 @@
           dense
           style="width: 120px"
           :min="1"
-          :max="5000"
+          :max="2000"
           v-model.number="zoom"
         />
       </div>
 
       <div
-          v-if="zoom === 1"
           class="q-px-xs row items-center q-gutter-x-sm shadow-5"
       >
         <div>
@@ -137,6 +136,14 @@
             <div>= {{ spectrogram.opts.noverlap }}</div>
           </div>
         </div>
+        <div>
+          <q-btn
+              dense round size="sm"
+              icon="close"
+              color="primary"
+              @click="removeSpectrogram"
+          />
+        </div>
       </div>
     </div>
 
@@ -171,7 +178,7 @@ function createWaveSurfer() {
     responsive: true,
 
     normalize: true,
-    backend: 'WebAudio',
+    // backend: 'WebAudio',
     // renderer: 'MultiCanvas',
     pixelRatio: 1,
     plugins: [
@@ -348,12 +355,18 @@ export default {
       }
     },
 
+    removeSpectrogram() {
+      destroySpectrogramPlugin(this.wavesurfer)
+    },
+
     zoomChanged(zoom) {
       this.zoom = zoom
       console.debug("zoomChanged", this.zoom)
-      if (this.zoom > 1) {
-        destroySpectrogramPlugin(this.wavesurfer)
-      }
+
+      // zoom change doesn't seem to propagate to the spectrogram,
+      // so, let's destroy the spectrogram and let the user recreate it
+      destroySpectrogramPlugin(this.wavesurfer)
+
       // zoom is pxPerSec
       this.wavesurfer.zoom(Number(this.zoom))
     },
@@ -368,10 +381,6 @@ export default {
     },
 
     updateSpectrogram() {
-      if (this.zoom > 1) {
-        return
-      }
-
       console.debug(
         "updateSpectrogram: spectrogram.updating=",
         this.spectrogram.updating

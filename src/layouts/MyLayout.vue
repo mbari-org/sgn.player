@@ -4,7 +4,9 @@
       <q-toolbar>
         <q-toolbar-title> Sgn.Player </q-toolbar-title>
 
-        <div>Quasar v{{ $q.version }}</div>
+        <a href="https://github.com/mbari-org/sgn.player" >
+          <img src="GitHub-Mark-Light-32px.png" >
+        </a>
       </q-toolbar>
     </q-header>
 
