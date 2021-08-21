@@ -1,8 +1,10 @@
 2021-08
 
+- Note: scrolling with spectrogram gets pretty slow.
+  Is there a way to speed it up?
 - enable spectrogram for any zoom.
   However, for now, destroying the spectrogram when zoom is changed
-  as it seems the zoom change doesn't propagate to the spectrogram
+  as it seems the zoom change doesn't propagate to the spectrogram.
 - allow some spectrogram params
 - recreate wavesurfer upon loading file.
   This seems to fix some misbehavior when trying to reuse the

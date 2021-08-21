@@ -165,6 +165,8 @@ import TimelinePlugin from "wavesurfer.js/dist/plugin/wavesurfer.timeline"
 
 import { debounce } from 'quasar'
 
+const debug = window.location.search.match(/.*debug.*/)
+
 function createWaveSurfer() {
   const wavesurfer = WaveSurfer.create({
     container: "#waveform",
@@ -200,17 +202,17 @@ function createWaveSurfer() {
   })
 
   wavesurfer.on("region-created", region => {
-    console.debug(
+    if (debug) console.debug(
         `region-created: id=${region.id} start=${region.start} end=${region.end}`
     )
   })
 
   wavesurfer.on("region-click", (region, e) => {
-    console.debug('region=', region)
+    if (debug) console.debug('region=', region)
     const loop = e.shiftKey
     e.stopPropagation()
     const isPlaying = wavesurfer.isPlaying()
-    console.debug(
+    if (debug) console.debug(
         `region-click: id=${region.id} start=${region.start} end=${region.end} loop=${loop} isPlaying=${isPlaying}`
     )
     if (wavesurfer.isPlaying()) {
@@ -241,10 +243,10 @@ function createSpectrogramPlugin(moreOpts = {}) {
 
 function destroySpectrogramPlugin(wavesurfer) {
   const active = wavesurfer.getActivePlugins()
-  console.debug("active plugins=", active)
+  if (debug) console.debug("active plugins=", active)
   if (active.spectrogram) {
     wavesurfer.destroyPlugin("spectrogram")
-    console.debug("spectrogram destroyed")
+    if (debug) console.debug("spectrogram destroyed")
   }
 }
 
@@ -312,11 +314,11 @@ export default {
       this.wavesurfer = createWaveSurfer()
 
       if (url) {
-        console.debug("loading url=", url)
+        if (debug) console.debug("loading url=", url)
         this.wavesurfer.load(url)
       }
       else {
-        console.debug("loading blob=", blob)
+        if (debug) console.debug("loading blob=", blob)
         this.wavesurfer.loadBlob(blob)
       }
 
@@ -328,13 +330,13 @@ export default {
       })
 
       this.wavesurfer.on("loading", () => {
-        console.debug("on loading")
+        if (debug) console.debug("on loading")
         this.isLoading = true
         this.showLoadButton = false
       })
 
       this.wavesurfer.on("ready", () => {
-        console.debug("on ready")
+        if (debug) console.debug("on ready")
         this.isLoading = false
         this.showLoadButton = true
         this.wavesurfer.setHeight(120)
@@ -361,7 +363,7 @@ export default {
 
     zoomChanged(zoom) {
       this.zoom = zoom
-      console.debug("zoomChanged", this.zoom)
+      if (debug) console.debug("zoomChanged", this.zoom)
 
       // zoom change doesn't seem to propagate to the spectrogram,
       // so, let's destroy the spectrogram and let the user recreate it
@@ -381,7 +383,7 @@ export default {
     },
 
     updateSpectrogram() {
-      console.debug(
+      if (debug) console.debug(
         "updateSpectrogram: spectrogram.updating=",
         this.spectrogram.updating
       )
@@ -394,11 +396,11 @@ export default {
       this.spectrogram.updating = true
 
       setTimeout(() => {
-        console.debug("creating spectrogram")
+        if (debug) console.debug("creating spectrogram")
         const spectrogram = createSpectrogramPlugin(this.spectrogram.opts)
 
         this.wavesurfer.addPlugin(spectrogram)
-        console.debug("initing spectrogram")
+        if (debug) console.debug("initing spectrogram")
         try {
           this.wavesurfer.initPlugin("spectrogram")
         }
@@ -409,14 +411,14 @@ export default {
         this.$nextTick(() => {
           if (this.spectrogram.updating) {
             this.spectrogram.updating = false
-            console.debug("spectrogram inited")
+            if (debug) console.debug("spectrogram inited")
           }
         })
       }, 200)
     },
 
     onKeyUp(event) {
-      // console.debug('onKeyUp', event)
+      // if (debug) console.debug('onKeyUp', event)
       switch (event.code) {
         case "Space":
           this.wavesurfer && this.wavesurfer.playPause()
